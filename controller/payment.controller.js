@@ -1,50 +1,73 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
-import Razorpay from "razorpay";
+import axios from "axios";
 
+const paymentcontroller = asyncHandler(async (req, res) => {
+  try {
+    const { order_id, amount, customer_id, customer_email, customer_phone } = req.body;
 
-const paymentcontroller = asyncHandler(async(req , res )=>{
-try{
-  const instance = new Razorpay({
-    key_id:process.env.KEY_ID,
-      key_secret:process.env.KEY_SECRET
-  })
+    const response = await axios.post(
+      `${process.env.CASHFREE_BASE_URL}/orders`,
+      {
+        order_id: order_id,
+        order_amount: amount,
+        order_currency: "INR",
+        customer_details: {
+          customer_id,
+          customer_email,
+          customer_phone
+        }
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-version": "2022-09-01",
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY
+        }
+      }
+    );
 
-  const{order_id,amount,payment_capture,currency}=req.body
-  const options = {
-    amount:amount*100,
-    currency:currency,
-    receipt:order_id,
-    payment_capture:payment_capture
+    return res.status(200).json({
+      success: true,
+      data: response.data
+    });
+
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Error creating order"
+    });
   }
+});
 
-  const order = await instance.orders.create(options);
-  if(!order)return res.status(500).send("something occured");
+const carddetail = asyncHandler(async (req, res) => {
+  try {
+    const { order_id } = req.body;
 
-  res.status(200).json({success:true,data:order})
-}catch(error){
-    console.log(error)
-}
+    const response = await axios.get(
+      `${process.env.CASHFREE_BASE_URL}/orders/${order_id}`,
+      {
+        headers: {
+          "x-api-version": "2022-09-01",
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY
+        }
+      }
+    );
 
-})
+    return res.status(200).json({
+      success: true,
+      data: response.data
+    });
 
-const carddetail = asyncHandler(async(req,res)=>{
-  try{
-    const instance = new Razorpay({
-      key_id:process.env.KEY_ID,
-      key_secret:process.env.KEY_SECRET
-    })
-  
-    const{id}=req.body
-    
-  
-    const order = await instance.payments.fetch(id);
-    if(!order)return res.status(500).send("something occured");
-  
-    res.status(200).json({success:true,data:order})
-  }catch(error){
-      console.log(error)
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching order details"
+    });
   }
-  
-})
+});
 
 export {paymentcontroller,carddetail}

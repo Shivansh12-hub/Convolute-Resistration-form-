@@ -86,11 +86,15 @@ const studentSchema = new Schema(
         message: "Provide residence (DayScholar or Hostler)",
       },
     },
-    rollNumber:{
-        type: String,
-        required: [true, "Student Number is required"],
-        unique:true,
-        trim:true
+    year:{
+        type: Number,
+        required: true,
+        enum:{
+          values:[1,2],
+          message:["Only 1st and 2nd year is allowed"]
+        }
+    }
+        
     },
   },
   { timestamps: true }
